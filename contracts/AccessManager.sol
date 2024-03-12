@@ -42,8 +42,9 @@ contract AccessManager {
         emit RoleRevoked(account, "NOTARY");
     }
 
-    // Hàm để kiểm tra xem một tài khoản có vai trò NOTARY_ROLE hay không
-    function hasNotaryRole(address account) external view returns (bool) {
+    // Hàm để kiểm tra xem một tài khoản có vai trò NOTARY_ROLE hay không?
+    // public
+    function hasNotaryRole(address account) public view returns (bool) {
         return isNotary[account];
     }
 }

@@ -1,14 +1,20 @@
 import { ethers } from "hardhat";
+const hre = require("hardhat");
 
 async function main() {
-  const Contract = await ethers.getContractFactory("AccessManager");
-  const deployed = await Contract.deploy()
-  console.log(deployed);
+  // Triển khai hợp đồng AccessManager
+  const AccessManager = await ethers.getContractFactory("AccessManager");
+  const accessManager = await AccessManager.deploy();
 
+  console.log("AccessManager deployed at:", accessManager.target);
+
+  // Triển khai hợp đồng LandLicenseRegistry và chuyển địa chỉ của AccessManager đã triển khai
+
+  const landLicenseRegistry = await hre.ethers.deployContract("LandLicenseRegistry", [accessManager.target]);
+
+  await landLicenseRegistry.waitForDeployment();
+  console.log("landLiceneContract deployed at:", landLicenseRegistry.target);
 }
-
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
