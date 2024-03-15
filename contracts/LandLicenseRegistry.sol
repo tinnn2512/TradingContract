@@ -1,46 +1,62 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+// enum LandState {
+//     PENDING,
+//     ACTIVATION,
+//     IN_TRANSACTION
+// }
 
-import "./AccessManager.sol";
-
-
-contract LandLicenseRegistry  {
+contract LandLicenseRegistry {
     struct LandLicense {
         address owner;
         string landAddress;
         uint256 area;
         string ipfsHash;
+        // LandState state;
     }
-
 
     mapping(uint256 => LandLicense) public landLicenses;
     mapping(address => uint256[]) public userLandLicenses;
 
+    AccessManager public accessManager;
 
 
-AccessManager public accessManager;
-
-
-modifier onlyNotary {
+    modifier onlyNotary {
     require(accessManager.hasNotaryRole(msg.sender), "Notary permission required");
     _;
 }
 
-    event LandLicenseRegistered(uint256 licenseId, address indexed owner, string landAddress, uint256 area);
-
-
-
 constructor(AccessManager _accessManager) {
         accessManager = _accessManager;
     }
-    
-    function registerLandLicense(address _owner, uint256 _licenseId, string memory _landAddress, uint256 _area, string memory _ipfsHash) external onlyNotary {
-    require(_owner != address(0), "Invalid owner address");
-    require(bytes(_landAddress).length > 0, "Land address must be provided");
-    require(_area > 0, "Area must be greater than 0");
-    require(bytes(_ipfsHash).length > 0, "ipfsHash must be provided");
-    // kiểm tra landLicenses[licenseId] là chưa có
+
+
+    event LandLicenseRegistered(
+        uint256 licenseId,
+        address indexed owner,
+        string landAddress,
+        uint256 area
+    );
+
+    function registerLandLicense(
+        address _owner,
+        uint256 _licenseId,
+        string memory _landAddress,
+        uint256 _area,
+        string memory _ipfsHash
+    ) external onlyNotary {
+        require(_owner != address(0), "Invalid owner address");
+        require(
+            bytes(_landAddress).length > 0,
+            "Land address must be provided"
+        );
+        require(_area > 0, "Area must be greater than 0");
+        require(bytes(_ipfsHash).length > 0, "ipfsHash must be provided");
+        require(
+            landLicenses[_licenseId].owner == address(0),
+            "License already exists"
+        );
 
         // uint256 licenseId = landLicenses.length;
         LandLicense storage newLicense = landLicenses[_licenseId];
@@ -58,7 +74,16 @@ constructor(AccessManager _accessManager) {
         return userLandLicenses[msg.sender];
     }
 
-    function getLandLicense(uint256 _licenseId) external view returns (address owner, string memory landAddress, uint256 area, string memory ipfsHash) {
+    function getLandLicense(uint256 _licenseId)
+        external
+        view
+        returns (
+            address owner,
+            string memory landAddress,
+            uint256 area,
+            string memory ipfsHash
+        )
+    {
         LandLicense storage landLicense = landLicenses[_licenseId];
         require(landLicense.owner != address(0), "Land license not found");
 
@@ -68,5 +93,3 @@ constructor(AccessManager _accessManager) {
         ipfsHash = landLicense.ipfsHash;
     }
 }
-
-
