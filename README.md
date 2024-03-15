@@ -13,5 +13,5 @@ npx hardhat run scripts/deploy.ts
 ```
 
 
-AccessManager deployed at: 0x9209B2063f9eb5894Ff6b6D9Ec661A7cDE118b11
-landLiceneContract deployed at: 0x8Cd34132c43eA45830c73AacDA913E7D74E5f272
+AccessManager deployed at: 0xd20F065bc31A5d20484682bD1459812A8F65757d
+landLiceneContract deployed at: 0x6A6445D39d8577C9De9E7e29b1914c991B9Fc4ac

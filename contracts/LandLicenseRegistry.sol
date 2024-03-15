@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-// // Uncomment this line to use console.log
-// // // import "hardhat/console.sol";
-// // import "./RoleManager.sol";
-// import "./RoleManager.sol";
+
 import "./AccessManager.sol";
 
 
@@ -15,16 +12,12 @@ contract LandLicenseRegistry  {
         uint256 area;
         string ipfsHash;
     }
-//     RoleManager public roleManager;
+
 
     mapping(uint256 => LandLicense) public landLicenses;
     mapping(address => uint256[]) public userLandLicenses;
 
-//     modifier onlyNotary {
-//         // call contract roleContract để kiểm tra quyền
-//         require(roleManager.hasNotaryRole(msg.sender), "Notary permission required");
-//         _;
-//     }
+
 
 AccessManager public accessManager;
 
@@ -36,9 +29,7 @@ modifier onlyNotary {
 
     event LandLicenseRegistered(uint256 licenseId, address indexed owner, string landAddress, uint256 area);
 
-//     constructor(RoleManager _roleManager){
-//         roleManager = _roleManager;
-//     }
+
 
 constructor(AccessManager _accessManager) {
         accessManager = _accessManager;
