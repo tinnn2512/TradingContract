@@ -15,8 +15,8 @@ contract AccessManager {
 
     // Hàm khởi tạo, chỉ được gọi một lần khi triển khai hợp đồng
     constructor() { // Gán vai trò ADMIN_ROLE cho địa chỉ cụ thể 
-    isAdmin[0x5B38Da6a701c568545dCfcB03FcB875f56beddC4] = true; 
-    emit RoleGranted(0x5B38Da6a701c568545dCfcB03FcB875f56beddC4, "ADMIN"); }
+    isAdmin[0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8] = true; 
+    emit RoleGranted(0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8, "ADMIN"); }
 
     // Hàm để cấp quyền cho một tài khoản
     function grantNotaryRole(address account) external {
