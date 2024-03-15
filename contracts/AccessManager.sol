@@ -14,11 +14,9 @@ contract AccessManager {
     event RoleRevoked(address indexed account, string role);
 
     // Hàm khởi tạo, chỉ được gọi một lần khi triển khai hợp đồng
-    constructor() {
-        // Gán vai trò ADMIN_ROLE cho người triển khai hợp đồng
-        isAdmin[msg.sender] = true;
-        emit RoleGranted(msg.sender, "ADMIN");
-    }
+    constructor() { // Gán vai trò ADMIN_ROLE cho địa chỉ cụ thể 
+    isAdmin[0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8] = true; 
+    emit RoleGranted(0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8, "ADMIN"); }
 
     // Hàm để cấp quyền cho một tài khoản
     function grantNotaryRole(address account) external {
