@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-verify";
 require("dotenv").config();
 
 const {API_URL, PRIVATE_KEY,API_KEY} = process.env;
