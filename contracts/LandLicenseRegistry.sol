@@ -2,20 +2,43 @@
 pragma solidity ^0.8.20;
 
 import "./AccessManager.sol";
+import "./SafeMath.sol";
 
 contract LandLicenseRegistry {
+    using SafeMath for uint256;
+    uint256 public LandLicenseCount;
+
     struct LandLicense {
         address owner;
         string landAddress;
         uint256 area;
         string ipfsHash;
+        address notary;
     }
 
     mapping(uint256 => LandLicense) public landLicenses;
     mapping(address => uint256[]) public userLandLicenses;
+    // mapping token to owners
+    mapping(uint256 => address[]) tokenToOwners;
+    // mapping token to owner approved (activate || sell)
+    mapping(uint256 => address[]) tokenToApprovals;
+    // mapping token to state of token
+    mapping(uint256 => State) public tokenToState; // Default: 0 => 'PENDDING'
+    // mapping token to notary
+    mapping(uint256 => address) public tokenToNotary;
+
+    enum State {
+        PENDDING,
+        ACTIVATED,
+        IN_TRANSACTION
+    }
+
+    constructor(AccessManager _accessManager) {
+        accessManager = _accessManager;
+    }
 
     AccessManager public accessManager;
-
+    // -------------------------------------modifier---------------------------------------------------------------------
     modifier onlyNotary() {
         require(
             accessManager.hasNotaryRole(msg.sender),
@@ -24,34 +47,62 @@ contract LandLicenseRegistry {
         _;
     }
 
-    // modifier onlyUser() {
+    modifier onlyPending(uint256 _id) {
+        require(
+            tokenToState[_id] == State.PENDDING,
+            "RealEstate: Require state is PENDDING"
+        );
+        _;
+    }
+
+    modifier onlyActivated(uint256 _id) {
+        require(
+            tokenToState[_id] == State.ACTIVATED,
+            "RealEstate: Require state is ACTIVATED"
+        );
+        _;
+    }
+
+    modifier onlyInTransaction(uint256 _id) {
+        require(
+            tokenToState[_id] == State.IN_TRANSACTION,
+            "RealEstate: Require state is iN_TRANSACTION"
+        );
+        _;
+    }
+
+    // modifier onlyOwnerOf(uint256 _id) {
     //     require(
-    //         msg.sender == landLicenses[licenseId].owner,
-    //         "Only owner can transfer license"
+    //         _checkExitInArray(tokenToOwners[_id], msg.sender),
+    //         "RealEstate: You're not owner of certificate"
     //     );
     //     _;
     // }
-
+    // ---------------------------------------event--------------------------------------------------------------------
     event LandLicenseRegistered(
         uint256 licenseId,
         address indexed owner,
-        string landAddress,
-        uint256 area
+        address notary
     );
-    event LandLicenseTransferred(uint256 licenseId, address from, address to);
 
-    constructor(AccessManager _accessManager) {
-        accessManager = _accessManager;
-    }
+    event Activate(uint256 licenseId, address owner, State state);
 
+    event Transfer(uint256 licenseId, address oldOwner, address newOwner);
+
+    // --------------------------------------------------function---------------------------------------------------------------
     function registerLandLicense(
         address _owner,
         uint256 _licenseId,
         string memory _landAddress,
         uint256 _area,
-        string memory _ipfsHash
-    ) external onlyNotary {
+        string memory _ipfsHash,
+        address _notary
+    ) public onlyNotary {
         require(_owner != address(0), "Invalid owner address");
+        require(
+            _owner != _notary,
+            "Owner and notary cannot be the same address"
+        );
         require(
             bytes(_landAddress).length > 0,
             "Land address must be provided"
@@ -62,7 +113,6 @@ contract LandLicenseRegistry {
             landLicenses[_licenseId].owner == address(0),
             "Land license with this ID already exists"
         );
-        // kiểm tra landLicenses[licenseId] là chưa có
 
         // uint256 licenseId = landLicenses.length;
         LandLicense storage newLicense = landLicenses[_licenseId];
@@ -70,114 +120,109 @@ contract LandLicenseRegistry {
         newLicense.landAddress = _landAddress;
         newLicense.area = _area;
         newLicense.ipfsHash = _ipfsHash;
+        newLicense.notary = _notary;
 
         userLandLicenses[_owner].push(_licenseId);
+        LandLicenseCount = LandLicenseCount.add(1);
+        tokenToOwners[LandLicenseCount].push(_owner);
 
-        emit LandLicenseRegistered(_licenseId, msg.sender, _landAddress, _area);
+        tokenToNotary[LandLicenseCount] = msg.sender;
+        emit LandLicenseRegistered(LandLicenseCount, _owner, _notary);
     }
 
-    //Xem mình có bao nhiêu miếng đất
     function getUserLandLicenses() external view returns (uint256[] memory) {
         return userLandLicenses[msg.sender];
     }
 
-    // xem ID đất
-    function getLandLicense(uint256 _licenseId)
+    function activate(uint256 _Id) public onlyPending(_Id) {
+        // require(
+        tokenToApprovals[_Id].push(msg.sender);
+        // if all owner approved => set state of certificate to 'ACTIVATED'
+        if (tokenToApprovals[_Id].length == tokenToOwners[_Id].length) {
+            tokenToState[_Id] = State.ACTIVATED;
+            // set user approve to null
+            delete tokenToApprovals[_Id];
+        }
+        emit Activate(_Id, msg.sender, tokenToState[_Id]);
+    }
+
+    function transferLandOwnership(uint256 _licenseId, address _newOwner)
+        external
+        onlyInTransaction(_licenseId)
+    {
+        // Đảm bảo địa chỉ của chủ mới là hợp lệ
+        require(
+            _newOwner != address(0),
+            "The new owner's address is not valid"
+        );
+        // Lấy danh sách các chủ sở hữu hiện tại của đất từ mapping
+        address[] storage currentOwners = tokenToOwners[_licenseId];
+        // Đảm bảo rằng đang có ít nhất một chủ sở hữu hiện tại của đất để chuyển nhượng
+        require(
+            currentOwners.length > 0,
+            "There are no current owners of the land to transfer"
+        );
+        // Đảm bảo rằng người gọi hàm là chủ sở hữu hiện tại của đất
+        require(
+            currentOwners[0] == msg.sender,
+            "You are not the current owner of the land"
+        );
+
+        // Cập nhật địa chỉ chủ sở hữu mới cho đất
+        currentOwners[0] = _newOwner;
+
+        emit Transfer(_licenseId, msg.sender, _newOwner);
+    }
+
+    // Kiểm tra xem chứng chỉ có được kích hoạt không
+    function isActivated(uint256 _id) public view returns (bool) {
+        return tokenToState[_id] == State.ACTIVATED;
+    }
+
+    // Lấy danh sách các chủ sở hữu của chứng chỉ
+    function getOwnersOfCert(uint256 _licenseId)
         external
         view
-        returns (
-            address owner,
-            string memory landAddress,
-            uint256 area,
-            string memory ipfsHash
-        )
+        returns (address[] memory)
     {
-        LandLicense storage landLicense = landLicenses[_licenseId];
-        require(landLicense.owner != address(0), "Land license not found");
-
-        owner = landLicense.owner;
-        landAddress = landLicense.landAddress;
-        area = landLicense.area;
-        ipfsHash = landLicense.ipfsHash;
+        return tokenToOwners[_licenseId];
     }
 
-    function transferLandLicense(uint256 _licenseId, address _newOwner) external {
-    LandLicense storage license = landLicenses[_licenseId];
-    require(landLicenses[_licenseId].owner != address(0), "Land license does not exist");
-    require(license.owner == msg.sender, "Only the owner can transfer the license");
-    require(_newOwner != address(0), "Invalid recipient address");
-
-    // Update ownership
-    license.owner = _newOwner;
-
-    // Update userLandLicenses mappings
-    removeElement(userLandLicenses[msg.sender], _licenseId);
-    userLandLicenses[_newOwner].push(_licenseId);
-
-    emit LandLicenseTransferred(_licenseId, msg.sender, _newOwner);
-  }
-
-  // Helper function to remove an element from an array (not part of standard solidity)
-  function removeElement(uint256[] storage arr, uint256 element) internal {
-    for (uint i = 0; i < arr.length; i++) {
-      if (arr[i] == element) {
-        arr[i] = arr[arr.length - 1];
-        arr.pop();
-        break;
-      }
+    // Lấy danh sách các chủ sở hữu của một tài sản
+    function getOwnersOf(uint256 _id) public view returns (address[] memory) {
+        return tokenToOwners[_id];
     }
-  }
+
+    // Lấy danh sách các chủ sở hữu đã chấp thuận cho một chứng chỉ
+    function getOwnerApproved(uint256 _id)
+        public
+        view
+        returns (address[] memory)
+    {
+        return tokenToApprovals[_id];
+    }
+
+    // Lấy đại diện của các chủ sở hữu
+    function getRepresentativeOfOwners(uint256 _licenseId)
+        external
+        view
+        returns (address)
+    {
+        return tokenToOwners[_licenseId][0];
+    }
+
+    // Lấy trạng thái của một chứng chỉ
+    function getStateOfCert(uint256 _licenseId) external view returns (State) {
+        return tokenToState[_licenseId];
+    }
+
+    // Đặt trạng thái của chứng chỉ vào quá trình giao dịch
+    function setStateOfCertInTransaction(uint256 _licenseId) external {
+        tokenToState[_licenseId] = State.IN_TRANSACTION;
+    }
+
+    // Đặt trạng thái của chứng chỉ ra khỏi quá trình giao dịch
+    function setStateOfCertOutTransaction(uint256 _licenseId) external {
+        tokenToState[_licenseId] = State.ACTIVATED;
+    }
 }
-
-//     function transferLandLicense(uint256 _licenseId, address _newOwner)
-//         public
-//         onlyUser
-//     {
-//         require(
-//             landLicenses[_licenseId].owner == msg.sender,
-//             "Only owner can transfer license"
-//         );
-//         require(_newOwner != address(0), "Invalid new owner address");
-
-//         // Remove license from current owner's list
-//         uint256[] storage ownerLicenses = userLandLicenses[msg.sender];
-//         uint256 indexToRemove;
-//         for (uint256 i = 0; i < ownerLicenses.length; i++) {
-//             if (ownerLicenses[i] == _licenseId) {
-//                 indexToRemove = i;
-//                 break;
-//             }
-//         }
-//         require(
-//             indexToRemove < ownerLicenses.length,
-//             "License not found in user's list"
-//         );
-
-//         // Remove element at the found index (potentially inefficient for large arrays)
-//         ownerLicenses[indexToRemove] = ownerLicenses[ownerLicenses.length - 1];
-//         ownerLicenses.pop();
-
-//         // Update owner and add license to new owner's list
-//         landLicenses[_licenseId].owner = _newOwner;
-//         userLandLicenses[_newOwner].push(_licenseId);
-
-//         emit LandLicenseTransferred(_licenseId, msg.sender, _newOwner);
-//     }
-// }
-
-// // kiểm tra đất của user
-// function getUserLandDetails(address _user) public view returns (uint256[] memory licenseIds, LandLicense[] memory details) {
-//         uint256[] memory userLicenses = userLandLicenses[_user];
-//         LandLicense[] memory userLandDetails = new LandLicense[](userLicenses.length);
-
-//         for (uint256 i = 0; i < userLicenses.length; i++) {
-//             uint256 licenseId = userLicenses[i];
-//             LandLicense storage license = landLicenses[licenseId];
-//             userLandDetails[i] = license;
-//         }
-
-//         return (userLicenses, userLandDetails);
-//     }
-// }
-
-
