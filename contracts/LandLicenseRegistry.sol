@@ -15,7 +15,7 @@ contract LandLicenseRegistry {
         string ipfsHash;
         address notary;
     }
-
+ // fix landLicense => Khi chuyển nhượng cho owner mới.
     mapping(uint256 => LandLicense) public landLicenses;
     mapping(address => uint256[]) public userLandLicenses;
     // mapping token to owners
@@ -23,9 +23,12 @@ contract LandLicenseRegistry {
     // mapping token to owner approved (activate || sell)
     mapping(uint256 => address[]) tokenToApprovals;
     // mapping token to state of token
-    mapping(uint256 => State) public tokenToState; // Default: 0 => 'PENDDING'
+    mapping(uint256 => State) public tokenToState; // Default: 0 => 'PENDDING' //require điều kiện
     // mapping token to notary
     mapping(uint256 => address) public tokenToNotary;
+    mapping(uint256 => bool) public licenseExists; 
+    
+    
 
     enum State {
         PENDDING,
@@ -70,6 +73,7 @@ contract LandLicenseRegistry {
         );
         _;
     }
+  
 
     // modifier onlyOwnerOf(uint256 _id) {
     //     require(
@@ -109,8 +113,8 @@ contract LandLicenseRegistry {
         );
         require(_area > 0, "Area must be greater than 0");
         require(bytes(_ipfsHash).length > 0, "ipfsHash must be provided");
-        require(
-            landLicenses[_licenseId].owner == address(0),
+         require(
+            !licenseExists[_licenseId], // Kiểm tra xem licenseId đã tồn tại chưa
             "Land license with this ID already exists"
         );
 
@@ -127,6 +131,7 @@ contract LandLicenseRegistry {
         tokenToOwners[LandLicenseCount].push(_owner);
 
         tokenToNotary[LandLicenseCount] = msg.sender;
+         licenseExists[_licenseId] = true;
         emit LandLicenseRegistered(LandLicenseCount, _owner, _notary);
     }
 
@@ -155,6 +160,12 @@ contract LandLicenseRegistry {
             _newOwner != address(0),
             "The new owner's address is not valid"
         );
+         LandLicense storage landLicense = landLicenses[_licenseId];
+          // Đảm bảo rằng giấy phép đất tồn tại
+    require(
+        landLicense.owner != address(0),
+        "Land license with this ID does not exist"
+    );
         // Lấy danh sách các chủ sở hữu hiện tại của đất từ mapping
         address[] storage currentOwners = tokenToOwners[_licenseId];
         // Đảm bảo rằng đang có ít nhất một chủ sở hữu hiện tại của đất để chuyển nhượng
@@ -167,6 +178,8 @@ contract LandLicenseRegistry {
             currentOwners[0] == msg.sender,
             "You are not the current owner of the land"
         );
+        // Cập nhật địa chỉ chủ sở hữu mới cho đất trong mapping landLicenses
+          landLicense.owner = _newOwner;
 
         // Cập nhật địa chỉ chủ sở hữu mới cho đất
         currentOwners[0] = _newOwner;
@@ -213,8 +226,10 @@ contract LandLicenseRegistry {
 
     // Lấy trạng thái của một chứng chỉ
     function getStateOfCert(uint256 _licenseId) external view returns (State) {
-        return tokenToState[_licenseId];
-    }
+    require(licenseExists[_licenseId], "License ID does not exist");
+    return tokenToState[_licenseId];
+}
+
 
     // Đặt trạng thái của chứng chỉ vào quá trình giao dịch
     function setStateOfCertInTransaction(uint256 _licenseId) external {
