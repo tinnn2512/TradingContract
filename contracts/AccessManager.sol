@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
 contract AccessManager {
     // Mapping để lưu trữ vai trò của từng địa chỉ
     mapping(address => bool) public isAdmin;
@@ -13,9 +14,11 @@ contract AccessManager {
     event RoleRevoked(address indexed account, string role);
 
     // Hàm khởi tạo, chỉ được gọi một lần khi triển khai hợp đồng
-    constructor() { // Gán vai trò ADMIN_ROLE cho địa chỉ cụ thể 
-    isAdmin[0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8] = true; 
-    emit RoleGranted(0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8, "ADMIN"); }
+    constructor() {
+        // Gán vai trò ADMIN_ROLE cho địa chỉ cụ thể
+        isAdmin[0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8] = true;
+        emit RoleGranted(0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8, "ADMIN");
+    }
 
     // Hàm để cấp quyền cho một tài khoản
     function grantNotaryRole(address account) external {
