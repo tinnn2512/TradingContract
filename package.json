@@ -3,11 +3,14 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.5",
+    "@types/jest": "^29.5.12",
+    "ethers": "^6.12.1",
     "hardhat": "^2.21.0"
   },
   "dependencies": {
     "@metamask/eth-sig-util": "^7.0.1",
     "@openzeppelin/contracts": "^5.0.2",
+    "chai": "^4.4.1",
     "dotenv": "^16.4.5",
     "jsonfile": "^6.1.0",
     "web3": "^4.6.0"
@@ -19,7 +22,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mochai"
   },
   "author": "",
   "license": "ISC",

@@ -4,29 +4,28 @@ pragma solidity ^0.8.0;
 import "./SafeMath.sol";
 
 interface ILandLicenseRegistry {
-    function getOwnersOfCert(string memory _licenseId)
-        external
-        view
-        returns (address[] memory);
+    function getOwnersOfCert(
+        string memory _licenseId
+    ) external view returns (address[] memory);
 
-    function getRepresentativeOfOwners(string memory _licenseId)
-        external
-        view
-        returns (address);
+    function getRepresentativeOfOwners(
+        string memory _licenseId
+    ) external view returns (address);
 
     // 0: PENDING - 1: ACTIVATE - 2: IN_TRANSACTION
-    function getStateOfCert(string memory _licenseId)
-        external
-        view
-        returns (uint8);
+    function getStateOfCert(
+        string memory _licenseId
+    ) external view returns (uint8);
 
     function setStateOfCertInTransaction(string memory _licenseId) external;
 
     function setStateOfCertOutTransaction(string memory _licenseId) external;
 
-   function transferLandOwnership(string memory _licenseId, address _newOwner)
-        external;
-        }
+    function transferLandOwnership(
+        string memory _licenseId,
+        address _newOwner
+    ) external;
+}
 
 contract TransactionContract {
     uint256 public id;
@@ -79,13 +78,17 @@ contract TransactionContract {
     event TransactionSuccess(uint256 idTransaction);
 
     constructor(ILandLicenseRegistry _LandLicenseRegistryContractAddress) {
-        LandLicenseRegistry = ILandLicenseRegistry(_LandLicenseRegistryContractAddress);
+        LandLicenseRegistry = ILandLicenseRegistry(
+            _LandLicenseRegistryContractAddress
+        );
     }
 
-    function setLandLicenseRegistryContract(ILandLicenseRegistry _LandLicenseRegistryContractAddress)
-        public
-    {
-        LandLicenseRegistry = ILandLicenseRegistry(_LandLicenseRegistryContractAddress);
+    function setLandLicenseRegistryContract(
+        ILandLicenseRegistry _LandLicenseRegistryContractAddress
+    ) public {
+        LandLicenseRegistry = ILandLicenseRegistry(
+            _LandLicenseRegistryContractAddress
+        );
     }
 
     //---------------------------------Modifier-------------------------------------
@@ -131,7 +134,9 @@ contract TransactionContract {
             "CreateTransaction: Deposit price must be smaller than transfer price"
         );
 
-        address[] memory owners = LandLicenseRegistry.getOwnersOfCert(_licenseId);
+        address[] memory owners = LandLicenseRegistry.getOwnersOfCert(
+            _licenseId
+        );
 
         uint256 timeEnd = block.timestamp + _depositTime * 24 * 60 * 60; // convert days to seconds
         Transaction memory transaction = Transaction({
@@ -164,10 +169,9 @@ contract TransactionContract {
      * Seller will receive the deposit amount and set state to SIGNED
      */
 
-    function acceptTransaction(uint256 _idTransaction)
-        public
-        onlyState(_idTransaction, State.DEPOSIT_REQUEST)
-    {
+    function acceptTransaction(
+        uint256 _idTransaction
+    ) public onlyState(_idTransaction, State.DEPOSIT_REQUEST) {
         Transaction memory transaction = idToTransaction[_idTransaction];
         require(
             block.timestamp <= transaction.timeEnd,
@@ -192,10 +196,9 @@ contract TransactionContract {
      * if transaction signed => buyer lost the deposit price
      */
 
-    function buyerCancelTransaction(uint256 _idTransaction)
-        public
-        allowModify(_idTransaction)
-    {
+    function buyerCancelTransaction(
+        uint256 _idTransaction
+    ) public allowModify(_idTransaction) {
         Transaction memory transaction = idToTransaction[_idTransaction];
         require(
             msg.sender == transaction.buyers[0],
@@ -228,11 +231,9 @@ contract TransactionContract {
      * if transaction not signed => refund deposit amount to buyers
      * if transaction signed => seller send compensation = 2 * deposit price to buyer
      */
-    function sellerCancelTransaction(uint256 _idTransaction)
-        public
-        payable
-        allowModify(_idTransaction)
-    {
+    function sellerCancelTransaction(
+        uint256 _idTransaction
+    ) public payable allowModify(_idTransaction) {
         Transaction memory transaction = idToTransaction[_idTransaction];
         require(
             msg.sender == transaction.sellers[0],
@@ -293,11 +294,9 @@ contract TransactionContract {
      * if transaction signed and sellers call => send compensation for buyers
      */
 
-    function cancelTransaction(uint256 _idTransaction)
-        public
-        payable
-        allowModify(_idTransaction)
-    {
+    function cancelTransaction(
+        uint256 _idTransaction
+    ) public payable allowModify(_idTransaction) {
         Transaction memory transaction = idToTransaction[_idTransaction];
         if (msg.sender == transaction.buyers[0]) {
             // buyer cancel DEPOSTI_REQUEST and recive depositPrice
@@ -368,11 +367,9 @@ contract TransactionContract {
      * buyer send remaining amount of transction to contract address (same sign transfer contract)
      */
 
-    function payment(uint256 _idTransaction)
-        public
-        payable
-        onlyState(_idTransaction, State.DEPOSIT_SIGNED)
-    {
+    function payment(
+        uint256 _idTransaction
+    ) public payable onlyState(_idTransaction, State.DEPOSIT_SIGNED) {
         Transaction memory transaction = idToTransaction[_idTransaction];
         require(
             block.timestamp <= transaction.timeEnd,
@@ -401,42 +398,50 @@ contract TransactionContract {
      * @dev Seller confirm transaction recive remaining amount of transaction
      * and transfer ownership of certificate to buyer
      */
-  	function confirmTransaction(uint256 _idTransaction)
-		public payable
-		onlyState(_idTransaction, State.TRANSFER_REQUEST)
-	{
-		Transaction memory transaction = idToTransaction[_idTransaction];
-		require(block.timestamp  <= transaction.timeEnd, "ConfirmTransaction: Transaction has expired.");
-		address representativeSellers = transaction.sellers[0];
-		require(
-			msg.sender == representativeSellers,
-			"ConfirmTransaction: Require representative of sellers."
-		);
-		uint256 personalIncomeTax = transaction.transferPrice.div(50); // 2% tax
-		uint256 remainingAmount = transaction.transferPrice.sub(transaction.depositPrice);
-		// remaining amount < personal tax => it must pay more.
-		if(remainingAmount < personalIncomeTax){
-			uint256 costsIncurred = personalIncomeTax - remainingAmount;
-			require(msg.value >= costsIncurred, "ConfirmTransaction: Value must be greater costs incurred.");
-		}
-		else{
-			uint256 valueAfterTax = remainingAmount - personalIncomeTax;
-			payable(msg.sender).transfer(valueAfterTax);
-		}
-		LandLicenseRegistry.transferLandOwnership(
-			transaction.licenseId,
-			transaction.buyers[0]
-		);
+    function confirmTransaction(
+        uint256 _idTransaction
+    ) public payable onlyState(_idTransaction, State.TRANSFER_REQUEST) {
+        Transaction memory transaction = idToTransaction[_idTransaction];
+        require(
+            block.timestamp <= transaction.timeEnd,
+            "ConfirmTransaction: Transaction has expired."
+        );
+        address representativeSellers = transaction.sellers[0];
+        require(
+            msg.sender == representativeSellers,
+            "ConfirmTransaction: Require representative of sellers."
+        );
+        uint256 personalIncomeTax = transaction.transferPrice.div(50); // 2% tax
+        uint256 remainingAmount = transaction.transferPrice.sub(
+            transaction.depositPrice
+        );
+        // remaining amount < personal tax => it must pay more.
+        if (remainingAmount < personalIncomeTax) {
+            uint256 costsIncurred = personalIncomeTax - remainingAmount;
+            require(
+                msg.value >= costsIncurred,
+                "ConfirmTransaction: Value must be greater costs incurred."
+            );
+        } else {
+            uint256 valueAfterTax = remainingAmount - personalIncomeTax;
+            payable(msg.sender).transfer(valueAfterTax);
+        }
+        LandLicenseRegistry.transferLandOwnership(
+            transaction.licenseId,
+            transaction.buyers[0]
+        );
         idToState[_idTransaction] = State.TRANSFER_SIGNED;
-		LandLicenseRegistry.setStateOfCertOutTransaction(transaction.licenseId);
+        LandLicenseRegistry.setStateOfCertOutTransaction(transaction.licenseId);
         emit TransactionSuccess(_idTransaction);
-	}
+    }
 
     // ------------------------------ View Function ------------------------------
     /**
      * @notice Get information of transaction
      */
-    function getTransaction(uint256 _idTransaction)
+    function getTransaction(
+        uint256 _idTransaction
+    )
         public
         view
         returns (

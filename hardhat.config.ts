@@ -6,7 +6,7 @@ require("dotenv").config();
 const { API_URL, PRIVATE_KEY, API_KEY, ETHERSCAN_API_KEY } = process.env;
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.24",
+  solidity: "0.8.0",
   defaultNetwork: "sepolia",
   networks: {
     sepolia: {
@@ -14,6 +14,12 @@ const config: HardhatUserConfig = {
       accounts: [`0x${PRIVATE_KEY}`],
     },
   },
+
+  // //test network local
+  // defaultNetwork: "hardhat",
+  // networks: {
+  // },
+
   etherscan: {
     apiKey: {
       sepolia: "DEEWM3R6UIHKE152PRJHHYFQBM5T7R47A4",
