@@ -211,6 +211,48 @@ describe("TransactionContract", () => {
           // Ensure that the "Payment" event is emitted
           await expect(paymentTx).to.emit(transactionContract, "Payment").withArgs(1);
         });
+//       });
+//       describe("confirmTransaction", async () => {
+//         const licenseId = "licenseId123";
+//         const depositPrice = 1000;
+//         const transferPrice = 5000;
+//         const depositTime = 30; // 30 days
+    
+//         beforeEach(async () => {
+//             // Create a valid transaction
+//             const tx = await landLicenseRegistry.connect(notary).registerLandLicense(owner.address, licenseId, "ipfsHash", notary.address);
+//             await tx.wait();
+//             await landLicenseRegistry.connect(owner).activate(licenseId);
+//             const depositPriceInWei = ethers.parseEther(depositPrice.toString());
+//             await transactionContract.connect(buyer1).createTransaction([buyer1.address], licenseId, depositPrice, transferPrice, depositTime, { value: depositPriceInWei });
+//             // Now accept the transaction
+//             await transactionContract.connect(owner).acceptTransaction(1);
+//             // Make the payment
+//             await transactionContract.connect(buyer1).payment(1);
+//         });
+    
+//         it("should confirm transaction successfully", async () => {
+//             // Confirm the transaction (assuming it's in the correct state)
+//             await expect(transactionContract.connect(owner).confirmTransaction(1)).to.not.be.reverted;
+//         });
+    
+//         it("should revert if msg.sender is not the representative seller", async () => {
+//             // Try to confirm the transaction with a non-representative seller
+//             await expect(transactionContract.connect(buyer1).confirmTransaction(1)).to.be.revertedWith("ConfirmTransaction: Require representative of sellers");
+//         });
+    
+//         it("should revert if the transaction has expired", async () => {
+//             // Fast forward time beyond the transaction expiration
+//             await ethers.provider.send("evm_increaseTime", [31 * 24 * 60 * 60]); // Advance 31 days
+//             // Confirm the transaction
+//             await expect(transactionContract.connect(owner).confirmTransaction(1)).to.be.revertedWith("ConfirmTransaction: Transaction has expired");
+//         });
+    
+//         // Add more test cases as needed...
+//     });
+//     });
+//   });
+});
         describe("confirmTransaction", async () => {
           let licenseId = "licenseId123";
           let depositPrice = 1000;
@@ -245,7 +287,7 @@ describe("TransactionContract", () => {
       });
     });
   });
-});
+
 
 
 

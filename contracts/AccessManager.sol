@@ -18,11 +18,11 @@ contract AccessManager {
     // Hàm khởi tạo, chỉ được gọi một lần khi triển khai hợp đồng
     constructor() {
         // Gán vai trò ADMIN_ROLE cho địa chỉ cụ thể
-        isAdmin[0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8] = true;
-        emit RoleGranted(0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8, "ADMIN");
+        // isAdmin[0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8] = true;
+        // emit RoleGranted(0xFA5E4c04B88fA7bcE290b1358d90deCA12646aF8, "ADMIN");
         // Account network Local
-    //     isAdmin[0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266] = true;
-    //     emit RoleGranted(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, "ADMIN");
+        isAdmin[0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266] = true;
+        emit RoleGranted(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, "ADMIN");
     }
 
     // Hàm để cấp quyền cho một tài khoản
